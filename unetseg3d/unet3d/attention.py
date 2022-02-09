@@ -65,7 +65,7 @@ class ChannelSELayer3D(nn.Module):
         """
         super(ChannelSELayer3D, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool3d(1)
-        self.max_pool = nn.AdaptiveMaxPool3d(1)
+        # self.max_pool = nn.AdaptiveMaxPool3d(1)
         num_channels_reduced = num_channels // reduction_ratio
         self.reduction_ratio = reduction_ratio
         self.fc1 = nn.Linear(num_channels, num_channels_reduced, bias=True)
@@ -89,11 +89,11 @@ class ChannelSELayer3D(nn.Module):
         # channel excitation
         fc_out_1 = self.lrelu(self.fc1(squeeze_tensor.view(batch_size, num_channels)))
         fc_out_2 = self.fc2(fc_out_1)
-        fc_out_3 = self.lrelu(self.fc1(squeeze_tensor_max.view(batch_size, num_channels)))
-        fc_out_4 =self.fc2(fc_out_3)
-        fc_out = self.sigmoid(fc_out_2+fc_out_4)
-        input_tensor = self.norm(input_tensor)
-        output_tensor = torch.mul(input_tensor, fc_out.view(batch_size, num_channels, 1, 1, 1)) #+ fc_out_4.view(batch_size, num_channels, 1, 1, 1)
+        # fc_out_3 = self.lrelu(self.fc1(squeeze_tensor_max.view(batch_size, num_channels)))
+        # fc_out_4 =self.fc2(fc_out_3)
+        # fc_out = self.sigmoid(fc_out_2)
+        # input_tensor = self.norm(input_tensor)
+        output_tensor = torch.mul(input_tensor, fc_out_2.view(batch_size, num_channels, 1, 1, 1)) #+ fc_out_4.view(batch_size, num_channels, 1, 1, 1)
 
         return output_tensor
 

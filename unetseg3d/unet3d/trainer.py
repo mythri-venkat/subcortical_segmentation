@@ -352,7 +352,7 @@ class UNet3DTrainer:
             outputs=[]
             binterps = []
             if self.roi_patches:
-                boxes = utils.get_roi(atlas)
+                boxes = utils.get_roi(atlas,True)
                 idxshuffle = list(range(15))
                 random.shuffle(idxshuffle)
                 boxes=[boxes[i] for i in idxshuffle]

@@ -143,9 +143,9 @@ def stitch_patches(outputs,boxes,shape,binterps,ncls=15):
     output = torch.argmax(output,1)
     return output
 
-def get_roi(atlas=None):
+def get_roi(atlas=None,training=False):
 
-    boxes = get_cropped_structure(atlas)
+    boxes = get_cropped_structure(atlas,training=training)
     return boxes
 
 
@@ -156,6 +156,7 @@ def bbox2_3D(img,icls=0):
     r = torch.any(torch.any(img == icls, dim=2),dim=2)
     c = torch.any(torch.any(img == icls, dim=1),dim=2)
     z = torch.any(torch.any(img == icls, dim=1),dim=1)
+    # print(len(torch.where(r))[0])
     rmin, rmax = torch.where(r)[1][[0, -1]]
     cmin, cmax = torch.where(c)[1][[0, -1]]
     zmin, zmax = torch.where(z)[1][[0, -1]]
@@ -178,21 +179,25 @@ def getpwr(n,lbl_shape=(80,80,80)):
 
     
 
-def get_cropped_structure(lbl,ncls=15,patch_shape=(48,48,48)):
-    # print(lbl.shape)
+def get_cropped_structure(lbl,ncls=15,training=False,patch_shape=(48,48,48)):
     boxes=[]
     lbl_shape = lbl.shape[1:]
+
     for icls in range(ncls):
         box = bbox2_3D(lbl,icls)
         #print("c",(box[1]-box[0],box[3]-box[2],box[5]-box[4]))
         if icls == 0:
             box[0],box[1],box[2],box[3],box[4],box[5] = 0,lbl_shape[0],0,lbl_shape[1],0,lbl_shape[2]
         center = [int((box[1] + box[0]) / 2), int((box[3] + box[2]) / 2), int((box[5] + box[4]) / 2)]
+        # if training:
             
+        #     center[0]+= np.random.randint(-2,3)
+        #     center[1]+= np.random.randint(-2,3)
+        #     center[2]+= np.random.randint(-2,3)
         b1=getpwr(box[1]-box[0])
         b2=getpwr(box[3]-box[2])
         b3=getpwr(box[5]-box[4])
-        #print(b1,b2,b3)
+        # print(b1,b2,b3)
         if b1 == lbl_shape[0] and b2 == lbl_shape[1] and b3 ==lbl_shape[2]:
             center = [int(lbl_shape[0] / 2), int(lbl_shape[1] / 2), int(lbl_shape[2] / 2)]
 
@@ -201,28 +206,34 @@ def get_cropped_structure(lbl,ncls=15,patch_shape=(48,48,48)):
         box[1]=center[0]+int(math.floor(b1/2))
 
         if box[0]<0:
+            box[1]+= (-box[0])
             box[0]=0
-            box[1]+=1
+            
         if box[1]>lbl_shape[0]:
+            box[0]-= box[1]-lbl_shape[0]
             box[1]=lbl_shape[0]
-            box[0]-=1
+            
         box[2]=center[1]-int(math.floor(b2/2))
         box[3]=center[1]+int(math.floor(b2/2))
         if box[2]<0:
+            box[3]+=(-box[2])
             box[2]=0
-            box[3]+=1
+            
         if box[3]>lbl_shape[0]:
+            box[2]-= (box[3]-lbl_shape[0])
             box[3]=lbl_shape[0]
-            box[2]-=1
+            
         box[4]=center[2]-int(math.floor(b3/2))
         box[5]=center[2]+int(math.floor(b3/2))
         if box[4]<0:
+            box[5]+= (-box[4])
             box[4]=0
-            box[5]+=1
+            
         if box[5]>lbl_shape[0]:
+            box[4]-= (box[5]-lbl_shape[0])
             box[5]=lbl_shape[0]
-            box[4]-=1
-        #print("c",(box[1]-box[0],box[3]-box[2],box[5]-box[4]))
+            
+        # print("c",(box[1]-box[0],box[3]-box[2],box[5]-box[4]))
         
         boxes.append(box)
     # boxes.sort()

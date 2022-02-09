@@ -1,9 +1,7 @@
 import collections
 import os
 
-import imageio
 import numpy as np
-import torch
 import nibabel as nib
 import json
 import math

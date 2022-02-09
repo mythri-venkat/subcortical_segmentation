@@ -3,7 +3,7 @@ from functools import partial
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
-from unetseg3d.unet3d.attention import ChannelSpatialSELayer3d
+from unetseg3d.unet3d.attention import ChannelSpatialSELayer3d,ChannelSELayer3D
 
 
 def conv3d(in_channels, out_channels, kernel_size, bias, padding):
@@ -226,13 +226,13 @@ class ResAttentionBlock(nn.Module):
         # residual block
         self.conv2 = SingleConv(out_channels, out_channels, kernel_size=kernel_size, order=order, num_groups=num_groups)
         # remove non-linearity from the 3rd convolution since it's going to be applied after adding the residual
-        # n_order = order
-        # for c in 'rel':
-        #     n_order = n_order.replace(c, '')
+        n_order = order
+        for c in 'rel':
+            n_order = n_order.replace(c, '')
         self.conv3 = SingleConv(out_channels, out_channels, kernel_size=kernel_size, order=order,
                                 num_groups=num_groups)
 
-        self.attn = ChannelSpatialSELayer3d(out_channels)
+        self.attn = ChannelSELayer3D(out_channels)
 
         # create non-linearity separately
         if 'l' in order:
