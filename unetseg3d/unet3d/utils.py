@@ -71,7 +71,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None,
     return state
 
 def load_pretrained_checkpoint(checkpoint_path, model, optimizer=None,
-                    model_key='model_state_dict', optimizer_key='optimizer_state_dict'):
+                    model_key='model_state_dict', optimizer_key='optimizer_state_dict',logger=None):
     """Loads model and training parameters from a given checkpoint_path
     If optimizer is provided, loads optimizer's state_dict of as well.
 
@@ -85,7 +85,8 @@ def load_pretrained_checkpoint(checkpoint_path, model, optimizer=None,
         state
     """
     if not os.path.exists(checkpoint_path):
-        raise IOError(f"Checkpoint '{checkpoint_path}' does not exist")
+        logger.info(f"Checkpoint '{checkpoint_path}' does not exist")
+        return None
 
     state = torch.load(checkpoint_path, map_location='cpu')
     del state[model_key]['final_conv.weight']
@@ -143,9 +144,9 @@ def stitch_patches(outputs,boxes,shape,binterps,ncls=15):
     output = torch.argmax(output,1)
     return output
 
-def get_roi(atlas=None,training=False):
+def get_roi(atlas=None,training=False,pwr=8):
 
-    boxes = get_cropped_structure(atlas,training=training)
+    boxes = get_cropped_structure(atlas,training=training,pwr=pwr)
     return boxes
 
 
@@ -164,10 +165,10 @@ def bbox2_3D(img,icls=0):
 
     return [rmin,rmax,cmin,cmax,zmin,zmax]
 
-def getpwr(n,lbl_shape=(80,80,80)):
-    if n%8 == 0:
+def getpwr(n,lbl_shape=(80,80,80),pwr=8):
+    if n%pwr == 0:
         return n
-    pwr = 8
+    
     for i in range(2,int(lbl_shape[0]/8)):
         npwr = pwr*i
         if n <= pwr:
@@ -179,7 +180,7 @@ def getpwr(n,lbl_shape=(80,80,80)):
 
     
 
-def get_cropped_structure(lbl,ncls=15,training=False,patch_shape=(48,48,48)):
+def get_cropped_structure(lbl,ncls=15,training=False,patch_shape=(48,48,48),pwr=8):
     boxes=[]
     lbl_shape = lbl.shape[1:]
 
@@ -194,9 +195,9 @@ def get_cropped_structure(lbl,ncls=15,training=False,patch_shape=(48,48,48)):
         #     center[0]+= np.random.randint(-2,3)
         #     center[1]+= np.random.randint(-2,3)
         #     center[2]+= np.random.randint(-2,3)
-        b1=getpwr(box[1]-box[0])
-        b2=getpwr(box[3]-box[2])
-        b3=getpwr(box[5]-box[4])
+        b1=getpwr(box[1]-box[0],pwr)
+        b2=getpwr(box[3]-box[2],pwr)
+        b3=getpwr(box[5]-box[4],pwr)
         # print(b1,b2,b3)
         if b1 == lbl_shape[0] and b2 == lbl_shape[1] and b3 ==lbl_shape[2]:
             center = [int(lbl_shape[0] / 2), int(lbl_shape[1] / 2), int(lbl_shape[2] / 2)]

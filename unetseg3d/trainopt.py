@@ -5,6 +5,8 @@ from unetseg3d.unet3d.config import load_config
 from unetseg3d.unet3d.utils import get_logger
 import optuna
 from optuna.storages import RetryFailedTrialCallback
+import os
+import sys
 
 logger = get_logger('TrainingSetup')
 
@@ -33,8 +35,10 @@ def main():
         heartbeat_interval=1,
         failed_trial_callback=RetryFailedTrialCallback(max_retry=2),
     )
+    dirname = os.path.dirname(sys.argv[2]).split("/")[-1]
+    split_name = config['loaders']['train']['file_paths'][0].split("split_")[-1].replace(".pkl","")
     study = optuna.create_study(
-        storage=storage, study_name="roionly"+config['loaders']['train']['file_paths'][0].split("split_")[-1].replace(".pkl",""), direction="maximize", load_if_exists=True
+        storage=storage, study_name="roionly_"+dirname+'_'+split_name, direction="maximize", load_if_exists=True
     )
     study.optimize(trainer.build, n_trials=None, timeout=86400)
 

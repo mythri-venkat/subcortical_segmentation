@@ -106,7 +106,6 @@ class UNet3DTrainerBuilder:
         # Create model trainer
         trainer = _create_trainer(config, model=model, optimizer=optimizer, lr_scheduler=lr_scheduler,
                                   loss_criterion=loss_criterion, eval_criterion=eval_criterion, loaders=loaders)
-
         return trainer
 
 class UNet3DTrainerBuilderOpt:
@@ -118,7 +117,7 @@ class UNet3DTrainerBuilderOpt:
         config = self.config.copy()
         config['model']['num_levels'] = trial.suggest_int("num_levels",3,4)
         config['model']['f_maps'] = trial.suggest_categorical("f_maps",[16,20,24,28,32])
-        config['model']['layer_order'] = trial.suggest_categorical("layer_order",["icr","bcr"])
+        config['model']['layer_order'] = trial.suggest_categorical("layer_order",["icr","bcr","gcr"])
         config['optimizer']['name'] = "Adam" #trial.suggest_categorical("optimizer_name",["Adam","SGD"])
         config['optimizer']['learning_rate'] = trial.suggest_float("learning_rate",1e-5,1e-2,log=True)
         config['optimizer']['weight_decay'] = trial.suggest_float("weight_decay",1e-4,1e-2,log=True)
@@ -128,9 +127,13 @@ class UNet3DTrainerBuilderOpt:
 
 
         trial_number = RetryFailedTrialCallback.retried_trial_number(trial)
-        config['trainer']['checkpoint_dir'] = config['trainer']['checkpoint_dir_name']+'/'+str(trial.number)
-        if trial_number is not None and os.path.isfile(config['trainer']['checkpoint_dir']+'/'+str(trial_number)+'/last_checkpoint.pytorch'):
-            config['resume']=config['trainer']['checkpoint_dir']+'/'+str(trial_number)+'/last_checkpoint.pytorch'
+        if trial_number is not None:
+            if os.path.isfile(config['trainer']['checkpoint_dir']+'/'+str(trial_number)+'/last_checkpoint.pytorch'):
+                config['resume']=config['trainer']['checkpoint_dir']+'/'+str(trial_number)+'/last_checkpoint.pytorch'
+        else:
+            config['trainer']['checkpoint_dir'] = config['trainer']['checkpoint_dir']+'/'+str(trial.number)
+
+        
 
         logger.info(config)
         # Create the model
@@ -289,7 +292,7 @@ class UNet3DTrainer:
                         tensorboard_formatter=None, sample_plotter=None,
                         skip_train_validation=False,roi_patches=False,interp=False,**kwargs):
         logger.info(f"Logging pre-trained model from '{pre_trained}'...")
-        utils.load_pretrained_checkpoint(pre_trained, model, None)
+        utils.load_pretrained_checkpoint(pre_trained, model, None,logger=logger)
         if 'checkpoint_dir' not in kwargs:
             checkpoint_dir = os.path.split(pre_trained)[0]
         else:
@@ -352,10 +355,10 @@ class UNet3DTrainer:
             outputs=[]
             binterps = []
             if self.roi_patches:
-                boxes = utils.get_roi(atlas,True)
+                boxes = utils.get_roi(atlas,True,math.pow(2,self.model.num_levels))
                 idxshuffle = list(range(15))
                 random.shuffle(idxshuffle)
-                boxes=[boxes[i] for i in idxshuffle]
+                # boxes=[boxes[i] for i in idxshuffle]
                 
                 for i in range(len(boxes)):
                     # i=np.random.randint(0,15)
@@ -471,7 +474,7 @@ class UNet3DTrainer:
                 if self.roi_patches:
                     outputs=[]
                     binterps = []
-                    boxes = utils.get_roi(atlas)                    
+                    boxes = utils.get_roi(atlas,pwr=math.pow(2,self.model.num_levels))                    
                     for i in range(len(boxes)):
                         input_cropped,target_cropped,binterp = utils.get_patches(input,target,boxes[i],interp=self.interp)
                         binterps.append(binterp)

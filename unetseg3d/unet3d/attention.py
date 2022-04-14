@@ -58,7 +58,7 @@ class ChannelSELayer3D(nn.Module):
         *Zhu et al., AnatomyNet, arXiv:arXiv:1808.05238*
     """
 
-    def __init__(self, num_channels, reduction_ratio=2):
+    def __init__(self, num_channels, reduction_ratio=8):
         """
         :param num_channels: No of input channels
         :param reduction_ratio: By how much should the num_channels should be reduced
@@ -75,7 +75,7 @@ class ChannelSELayer3D(nn.Module):
         self.sigmoid = nn.Sigmoid()
         # self.fc3 = nn.Linear(num_channels, num_channels_reduced, bias=True)
         # self.fc4 = nn.Linear(num_channels_reduced, num_channels, bias=True)
-        self.norm = NormLayerGlobal(num_channels, affine=True)
+        # self.norm = NormLayerGlobal(num_channels, affine=True)
 
     def forward(self, input_tensor):
         """
@@ -85,7 +85,7 @@ class ChannelSELayer3D(nn.Module):
         batch_size, num_channels, D, H, W = input_tensor.size()
         # Average along each channel
         squeeze_tensor = self.avg_pool(input_tensor)
-        squeeze_tensor_max = self.max_pool(input_tensor)
+        # squeeze_tensor_max = self.max_pool(input_tensor)
         # channel excitation
         fc_out_1 = self.lrelu(self.fc1(squeeze_tensor.view(batch_size, num_channels)))
         fc_out_2 = self.fc2(fc_out_1)

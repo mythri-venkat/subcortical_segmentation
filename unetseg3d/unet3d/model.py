@@ -46,7 +46,7 @@ class Abstract3DUNet(nn.Module):
         super(Abstract3DUNet, self).__init__()
 
         self.testing = testing
-        
+        self.num_levels = num_levels 
         if isinstance(f_maps, int):
             f_maps = number_of_features_per_level(f_maps, num_levels=num_levels)
 

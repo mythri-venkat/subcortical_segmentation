@@ -6,11 +6,10 @@ import nibabel as nib
 
 from unetseg3d.unet3d.utils import get_logger
 from unetseg3d.unet3d.metrics import get_evaluation_metric,get_evaluation_metrics
-import pandas as pa
 import torch.nn.functional as F
 from . import utils
-
-
+import math
+import pandas as pa
 logger = get_logger('UNetPredictor')
 
 
@@ -82,10 +81,13 @@ class NiiPredictor(_AbstractPredictor):
         # Set the `testing=true` flag otherwise the final Softmax/Sigmoid won't be applied!
         self.model.testing = True
         # Run predictions on the entire input dataset
+        subid=0
         with torch.no_grad():
             eval_scores = []
             for t in test_loader:
                 batch,target, subject,atlas=self._split_training_batch(t)  
+                output_file = self.output_dir+subject[0]+'.nii.gz'
+
                 # send batch to device
                 batch = batch.to(device)
                 target = target.to(device)
@@ -96,7 +98,7 @@ class NiiPredictor(_AbstractPredictor):
                 bnoutputs=[]
                 binterps=[]
                 if self.roi_patches:
-                    boxes= utils.get_roi(atlas)
+                    boxes= utils.get_roi(atlas,pwr=math.pow(2,self.model.num_levels))
                     for i in range(len(boxes)):
                         input_cropped,target_cropped,binterp = utils.get_patches(batch,target,boxes[i])
                         binterps.append(binterp)
@@ -129,11 +131,11 @@ class NiiPredictor(_AbstractPredictor):
                     eval_score = self.eval_criterion(prediction,target)
                     eval_scores.append(eval_score.cpu().numpy())
                     print(np.mean(eval_score.cpu().numpy()[1:]))
-                output_file=self._save_results(prediction,subject)
-                
-                
-                # save results
-                logger.info(f'Saving predictions to: {output_file}')
+                if subid==0:
+                    output_file=self._save_results(prediction,subject)             
+                                    # save results
+                    logger.info(f'Saving predictions to: {output_file}')
+                    subid+=1
             avg12,avg14=self._evaluate_save_results(eval_scores)
             logger.info(f'Results: {avg12},{avg14}')
 
@@ -193,4 +195,3 @@ class NiiPredictor(_AbstractPredictor):
         img = nib.Nifti1Image(prediction,np.eye(4))
         nib.save(img,outfile)
         return outfile
-
